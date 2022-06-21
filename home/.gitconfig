@@ -1,0 +1,21 @@
+[user]
+	email = zelr0xff@gmail.com
+	name = zelr0x
+
+# Better than an unencrypted ssh key, but still it's a good idea to not store
+# anything other than restricted PATs here. To save (or erase) credentials run:
+# `git config --global credential.helper store` and enter new credentials after
+# any protected git request e.g. `git pull` from a private repo or `git push`
+# to a public repo.
+[credential]
+	helper = store
+[init]
+	defaultBranch = master
+[alias]
+	c = commit
+	s = status
+	st = status
+	lg = log --oneline
+	last  = log -1 HEAD
+[help]
+	autocorrect = 1
