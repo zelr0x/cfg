@@ -7,5 +7,4 @@
 # to Super+Space and resets Alt+Shift allowing Shift+Alt+Tab to work.
 
 gsettings reset org.gnome.desktop.input-sources xkb-options
-gsettings set org.gnome.desktop.wm.keybindings switch-input-source "['<Super>Space']"
-gsettings set org.gnome.desktop.wm.keybindings switch-input-source-backward "['<Super>Space']"
+gsettings set org.gnome.desktop.input-sources xkb-options "['grp:super_space_toggle', 'grp_led:scroll', 'lv3:switch']"
