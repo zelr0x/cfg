@@ -257,11 +257,25 @@ and is included for completeness."
 (global-set-key [?\C-1] 'delete-other-window)
 (global-set-key [?\C-2] 'split-window-vertically)
 (global-set-key [?\C-3] 'split-window-horizontally)
-(global-set-key "\C-o" 'my-next-window)
-(global-set-key [?\C-,] 'beginning-of-buffer)
-(global-set-key [?\C-.] 'end-of-buffer)
+(global-set-key [?\C-o] 'my-next-window)
 (global-set-key [C-backspace] 'kill-word)
 (global-set-key [C-tab] 'next-window-any-frame)
+
+(defun swap-lines-up ()
+  "Exchange current line with the line above."
+  (interactive)
+  (transpose-lines 1)
+  (forward-line -2))
+
+(defun swap-lines-down ()
+  "Exchange current line with the line below."
+  (interactive)
+  (forward-line 1)
+  (transpose-lines 1)
+  (forward-line -1))
+
+(global-set-key (kbd "M-S-<up>") 'swap-lines-up)
+(global-set-key (kbd "M-S-<down>") 'swap-lines-down)
 
 (defun my/comment ()
   "Comments or uncomments the current line or region."
@@ -269,9 +283,32 @@ and is included for completeness."
   (if (region-active-p)
       (comment-or-uncomment-region (region-beginning) (region-end))
     (comment-or-uncomment-region (line-beginning-position) (line-end-position))))
-
-;; (global-set-key [?\C-/] 'my/comment)
+;; (global-set-key [?\C-/] 'my/comment) ;; where is undo then?
 (global-set-key [?\C-\'] 'my/comment)
+
+(defvar my/toggle-jump-dst-curr nil)
+(defun my/toggle-jump-dst (dst at-dst)
+  "Toggle position between dst and the current position."
+  (interactive)
+  (unless (boundp 'my/toggle-jump-dst-curr)
+    (point-to-register 'my/toggle-jump-dst-curr))
+  (cond ((funcall at-dst)
+         (jump-to-register 'my/toggle-jump-dst-curr))
+        (t (point-to-register 'my/toggle-jump-dst-curr)
+           (funcall dst))))
+(global-set-key [?\C-.]
+                (lambda ()
+                  (interactive)
+                  (my/toggle-jump-dst
+                   'end-of-buffer
+                   (lambda () (= (line-number-at-pos)
+                                 (line-number-at-pos (point-max)))))))
+(global-set-key [?\C-,]
+                (lambda ()
+                  (interactive)
+                  (my/toggle-jump-dst
+                   'beginning-of-buffer
+                   (lambda () (= (line-number-at-pos) (point-min))))))
 
 ;; ================================
 ;; Casey Muratori's С and C++ style.
