@@ -78,7 +78,7 @@
  '(region ((t (:background "blue"))))
  '(widget-field-face ((t (:foreground "white"))) t)
  '(widget-single-line-field-face ((t (:background "darkgray"))) t))
-   
+
 ;(set-background-color "#072626")
 ;(set-background-color "white")
 (set-cursor-color "lightgreen")
@@ -237,11 +237,11 @@ and is included for completeness."
 (global-set-key [?\C-u] 'upcase-word)
 
 ;; Change navigation keys.
-;(global-set-key [home] 'beginning-of-line)
-;(global-set-key [end] 'end-of-line)
+(global-set-key [home] 'back-to-indentation)
+(global-set-key [end] 'end-of-line)
 ;(global-set-key [next] (defun () (scroll-down 1)))
 ;(global-set-key [prior] (defun () (scroll-up 1)))
-(global-set-key [delete] 'delete-char)
+;(global-set-key [delete] 'delete-char)
 (global-set-key [?\C-2] 'set-mark-command)
 (global-set-key [f12] 'eval-buffer)
 (global-set-key [f8] 'goto-line)
@@ -362,7 +362,7 @@ and is included for completeness."
 (defun casey-big-fun-c-hook ()
   ; Set my style for the current buffer
   (c-add-style "BigFun" casey-big-fun-c-style t)
-  
+
   ; 4-space tabs
   ;; (setq tab-width 4
   ;;       indent-tabs-mode nil)
@@ -393,8 +393,9 @@ and is included for completeness."
     (if (string-match "\\.c" buffer-file-name)
        (setq CorrespondingFileName (concat BaseFileName ".h")))
     (if (string-match "\\.h" buffer-file-name)
-       (if (file-exists-p (concat BaseFileName ".c")) (setq CorrespondingFileName (concat BaseFileName ".c"))
-	   (setq CorrespondingFileName (concat BaseFileName ".cpp"))))
+        (if (file-exists-p (concat BaseFileName ".c"))
+            (setq CorrespondingFileName (concat BaseFileName ".c"))
+          (setq CorrespondingFileName (concat BaseFileName ".cpp"))))
     (if (string-match "\\.hin" buffer-file-name)
        (setq CorrespondingFileName (concat BaseFileName ".cin")))
     (if (string-match "\\.cin" buffer-file-name)
@@ -413,13 +414,14 @@ and is included for completeness."
   (define-key c++-mode-map "\ec" 'casey-find-corresponding-file)
   (define-key c++-mode-map "\eC" 'casey-find-corresponding-file-other-window)
 
-  ;(define-key c++-mode-map "\es" 'casey-save-buffer)
+  (define-key c++-mode-map "\es" 'my/save-buffer)
+  (define-key c++-mode-map (kbd "C-x C-s") 'my/save-buffer)
 
   (define-key c++-mode-map "\t" 'dabbrev-expand)
   (define-key c++-mode-map [S-tab] 'indent-for-tab-command)
   (define-key c++-mode-map "\C-y" 'indent-for-tab-command)
   ;(define-key c++-mode-map [C-tab] 'indent-region)
-  ;(define-key c++-mode-map "	" 'indent-region)
+  ;(define-key c++-mode-map " " 'indent-region)
 
   (define-key c++-mode-map "\ej" 'imenu)
 
@@ -438,11 +440,14 @@ and is included for completeness."
 (add-hook 'c-mode-common-hook 'casey-big-fun-c-hook)
 (add-hook 'c++-mode-common-hook 'casey-big-fun-c-hook)
 
-(defun casey-save-buffer ()
-  "Save the buffer after untabifying it."
+(delete-selection-mode 1)
+
+(defun my/save-buffer ()
+  "Untabify, widen, remove trailing whitespace, then save buffer"
   (interactive)
   (save-excursion
     (save-restriction
       (widen)
-      (untabify (point-min) (point-max))))
-  (save-buffer))
+      (untabify (point-min) (point-max)))
+  (delete-trailing-whitespace)
+  (save-buffer)))
