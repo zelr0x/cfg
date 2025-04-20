@@ -234,10 +234,10 @@ and is included for completeness."
 (define-derived-mode rust-mode prog-mode "Rust"
   "A minimal Rust mode for syntax highlighting."
   (font-lock-add-keywords nil
-    '(("\\<\\(fn\\|let\\|mut\\|const\\|static\\|struct\\|impl\\|enum\\|trait\\|type\\|use\\|pub\\|mod\\|crate\\|match\\|if\\|else\\|for\\|while\\|loop\\|break\\|continue\\|return\\|yield\\|as\\|in\\|async\\|await\\|move\\|unsafe\\|dyn\\|default\\|where\\|ref\\|alignof\\|offsetof\\|sizeof\\|=>|->\\|::\\)\\>" . font-lock-keyword-face)
+    '(("\\(#!?\\[.*?\\]\\)" . font-lock-preprocessor-face)
+      ("\\<\\(fn\\|let\\|mut\\|const\\|static\\|struct\\|impl\\|enum\\|trait\\|type\\|use\\|pub\\|mod\\|crate\\|match\\|if\\|else\\|for\\|while\\|loop\\|break\\|continue\\|return\\|yield\\|as\\|in\\|async\\|await\\|move\\|unsafe\\|dyn\\|default\\|where\\|ref\\|alignof\\|offsetof\\|sizeof\\|=>|->\\|::\\)\\>" . font-lock-keyword-face)
       ("\\<\\(None\\|Some\\|Ok\\|Err\\|Result\\|Option\\|self\\|super\\|Self\\|true\\|false\\)\\>" . font-lock-constant-face)
-      ("\\<\\(u8\\|u16\\|u32\\|u64\\|u128\\|i8\\|i16\\|i32\\|i64\\|i128\\|f32\\|f64\\|bool\\|char\\|str\\)\\>" . font-lock-type-face)
-      ("\\(#!?\\[.*?\\]\\)" . font-lock-preprocessor-face))))
+      ("\\<\\(u8\\|u16\\|u32\\|u64\\|u128\\|i8\\|i16\\|i32\\|i64\\|i128\\|f32\\|f64\\|bool\\|char\\|str\\)\\>" . font-lock-type-face))))
 (add-to-list 'auto-mode-alist '("\\.rs\\'" . rust-mode))
 
 
