@@ -237,7 +237,7 @@ and is included for completeness."
     '(("\\<\\(fn\\|let\\|mut\\|const\\|static\\|struct\\|impl\\|enum\\|trait\\|type\\|use\\|pub\\|mod\\|crate\\|match\\|if\\|else\\|for\\|while\\|loop\\|break\\|continue\\|return\\|yield\\|as\\|in\\|async\\|await\\|move\\|unsafe\\|dyn\\|default\\|where\\|ref\\|alignof\\|offsetof\\|sizeof\\|=>|->\\|::\\)\\>" . font-lock-keyword-face)
       ("\\<\\(None\\|Some\\|Ok\\|Err\\|Result\\|Option\\|self\\|super\\|Self\\|true\\|false\\)\\>" . font-lock-constant-face)
       ("\\<\\(u8\\|u16\\|u32\\|u64\\|u128\\|i8\\|i16\\|i32\\|i64\\|i128\\|f32\\|f64\\|bool\\|char\\|str\\)\\>" . font-lock-type-face)
-      ("\\(#\\[.*?\\]\\)" . font-lock-preprocessor-face)))
+      ("\\(#!?\\[.*?\\]\\)" . font-lock-preprocessor-face))))
 (add-to-list 'auto-mode-alist '("\\.rs\\'" . rust-mode))
 
 
@@ -319,6 +319,21 @@ and is included for completeness."
                   (my/toggle-jump-dst
                    'beginning-of-buffer
                    (lambda () (= (line-number-at-pos) (point-min))))))
+
+(defun my/inside-string? ()
+  (nth 3 (syntax-ppss)))
+
+(defun my/insert-brace-pair ()
+  "Insert matching braces and place cursor after `{`. Avoid pairing in strings."
+  (interactive)
+  (if (my/inside-string?)
+      (insert "{")
+    (progn
+      (insert "{}")
+      (backward-char))))
+
+(global-set-key (kbd "{") 'my/insert-brace-pair)
+
 
 ;; ================================
 ;; Casey Muratori's С and C++ style.
