@@ -40,6 +40,9 @@ set noundofile
 " reduce delay after switching from insert to normal mode
 set ttimeoutlen=10
 
+" Protect against modeline pwn
+set nomodeline
+
 """ Indentation
 " Convert tabs to spaces
 :set expandtab
