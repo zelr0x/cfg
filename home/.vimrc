@@ -33,8 +33,15 @@ endif
 "call plug#end()
 
 """ System
+set fileformats=unix,dos
 set fileformat=unix
+augroup lineendings
+  autocmd!
+  autocmd BufNewFile *.bat,*.cmd setlocal fileformat=dos
+augroup END
+
 set encoding=utf-8
+
 set noundofile
 
 " reduce delay after switching from insert to normal mode
