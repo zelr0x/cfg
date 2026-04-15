@@ -1,72 +1,86 @@
-" ## OS-detection
-" https://vi.stackexchange.com/a/2577
-if !exists('g:os') && !exists('g:is_unix')
-    if has('win64') || has('win32') || has('win16')
-        let g:os = 'Windows'
-        let g:is_unix = 0
-    else
-        let g:os = substitute(system('uname'), '\n', '', '')
-        let g:is_unix = 1
-    endif
-endif
-
-" ## vim-plug plugin manager
-
-" Start vim-plug
-"call plug#begin('~\.vim\plugged')
-
-" List plugins before plug#end()
-" Save and type :PlugInstall after adding a plugin in the list below
-
-" Status bar and tab bar
-"Plug 'vim-airline/vim-airline'
-"Plug 'vim-airline/vim-airline-themes'
-
-" Git wrapper
-"Plug 'tpope/vim-fugitive'
-" Declare color schemes / make them loadable
-"Plug 'hzchirs/vim-material'
-"Plug 'morhetz/gruvbox'
-"Plug 'altercation/vim-colors-solarized'
-"
-" Init plugin system; updates $runtimepath and execute { syntax enable, filetype indent on }
-"call plug#end()
-
 """ System
-set fileformats=unix,dos
-set fileformat=unix
-augroup lineendings
-  autocmd!
-  autocmd BufNewFile *.bat,*.cmd setlocal fileformat=dos
-augroup END
-
 set encoding=utf-8
 
-set noundofile
-
-" reduce delay after switching from insert to normal mode
+" Reduce delay after switching from insert to normal mode
 set ttimeoutlen=10
+
+" Disable undo file
+set noundofile
 
 " Protect against modeline pwn
 set nomodeline
 
+
+""" Line number
+set number          " Show absolute current line number to the left
+set relativenumber  " Show relative line numbers to the left
+set ruler           " Show current line and column at the status line
+
+set fileformats=unix,dos
+set fileformat=unix
+augroup new_file_le_pick
+  autocmd!
+  autocmd BufNewFile *.bat,*.cmd setlocal fileformat=dos
+augroup END
+
+
+""" Status line
+
+" Mixed line endings detection
+let b:mixed_endings = 0
+function! CheckMixedEndings()
+  let l:has_crlf = search('\r', 'nw') > 0
+  let l:has_lf   = search('\n', 'nw') > 0
+
+  if l:has_crlf && l:has_lf
+    let b:mixed_endings = 1
+  else
+    let b:mixed_endings = 0
+  endif
+endfunction
+
+augroup mixed_le_check
+  autocmd!
+  autocmd BufReadPost,BufEnter * call CheckMixedEndings()
+  autocmd TextChanged,TextChangedI * call CheckMixedEndings()
+augroup END
+
+" Git branch
+let b:git_branch = ''
+
+function! UpdateGitBranch()
+  let l:dir = expand('%:p:h')
+  let l:branch = system('git -C ' . shellescape(l:dir) . ' rev-parse --abbrev-ref HEAD')
+  if v:shell_error
+    let b:git_branch = ''
+  else
+    let b:git_branch = substitute(l:branch, '\n', '', 'g')
+  endif
+endfunction
+
+augroup git_branch
+  autocmd!
+  autocmd BufEnter,BufWritePost * call UpdateGitBranch()
+augroup END
+
+
+" Always show status line.
+set laststatus=2
+" Status line format:
+" <START>filename filetype b:git_branch readonly-flag modified-flag
+" <RIGHT ALIGN>
+" line column virtual-column (percentage%-top-all-bottom) | file encoding< (BOM)> | line endings< (mixed)> <END>
+set statusline=%f\ %y\ %{b:git_branch}\ %r\ %m%=%l,%c\ %V\ (%P)\ \|\ %{(&fileencoding!=''?&fileencoding:&encoding)}\ %{&bomb?'(BOM)':''}\|\ %{&fileformat}\ %{b:mixed_endings?'(mixed)':''}\ %{''}
+
+
 """ Indentation
-" Convert tabs to spaces
-:set expandtab
-:set tabstop=4
-:set shiftwidth=4
+set expandtab
+set tabstop=4
+set shiftwidth=4
 """ Disable expandtab for Go files
 autocmd FileType go setlocal noexpandtab
 
-""" Line number
-set number
-set relativenumber
-set ruler
-
-""" Fix backspace behaviour
-"inoremap <Char-0x07F> <BS> 
-"nnoremap <Char-0x07F> <BS>
-"set backspace=2
+""" Fix backspace
 set backspace=indent,eol,start
 
 """ Search
@@ -79,23 +93,9 @@ set incsearch
 :nnoremap <CR> :nohlsearch<CR>/<BS>
 
 """ Force write
-if g:is_unix
-    cmap w!! w !sudo tee > /dev/null %
-endif
+cmap w!! w !sudo tee > /dev/null %
 
-" ### Font
-"if has("gui_running")
-"    "set guifont=DejaVu\ Sans\ Mono\ for\ Powerline:h14:cANSI
-"    set guifont=Monaco\ for\ Powerline:h12:cANSI
-"    set renderoptions=type:directx,renmode:5
-"elseif g:os == 'Windows'
-"    "set guifont=Monaco\ for\ Powerline:h14:cANSI
-"    "set renderoptions=type:directx,renmode:5
-"elseif g:os == 'Darwin'
-"    set guifont=Monaco\ for\ Powerline:h24
-"endif
-
-""" Color
+""" Colors
 syntax on
 
 if !has("gui_running")
@@ -105,36 +105,4 @@ if !has("gui_running")
         "set termguicolors
     endif
 endif
-
-
-""" old stuff: remove or fix
-" set default command line to not show current mode (interferes with some plugins)
-"set noshowmode
-
-" Colorscheme config and init (GUI)
-"if has("gui_running") 
-"    :colorscheme solarized
-"    let g:airline_theme='solarized' " theme
-"    :set guioptions-=T  " remove toolbar
-"    :set guioptions-=r  " remove right scroll bar
-"    :set lines=50 columns=120 " set initial window size
-"endif
-
-"set t_Co=256 
-"colorscheme solarized
-"set background=dark " for themes like gruvbox
-"let g:solarized_termtrans=1 " for solatized in transparent terminal
-
-" ### Misc
-" Wrong highlight fix
-"let g:solarized_underline=0
-"highlight Visual term=reverse cterm=reverse ctermbg=12 ctermfg=0
-
-" ## Plugin configuration
-
-" Airline customization
-"let g:airline_theme='solarized' " theme
-"let g:airline_solarized_bg='dark'
-"let g:airline_powerline_fonts=1 " enable fonts
-"let g:Powerline_symbols='unicode' " force unicode for powerline symbols
 
