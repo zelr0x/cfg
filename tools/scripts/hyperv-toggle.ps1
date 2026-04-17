@@ -1,8 +1,31 @@
-# Toggles hypervisor on or off. Requires admin.
+<#
+.SYNOPSIS
+    Toggles hypervisor on or off.
 
+.DESCRIPTION
+    Toggles hypervisor on or off interactively or sets it to the specified
+    state non-interactively. Requires admin.
+
+.PARAMETER State
+    Positional parameter. State is one of: "On", "Off" or "Auto", case-insensitive.
+    "Auto" is the same as "On".
+
+.EXAMPLE
+    .\hypervisor-toggle.ps1 on
+
+.EXITCODES
+    0  Success
+    1  Generic error
+    2  State missing in non-interactive mode
+    3  Elevation failure (script not run as Administrator)
+    10 bcedit failure
+#>
+
+[CmdletBinding()]
 param(
     # Optional
     [ValidateSet("On", "Auto", "Off", IgnoreCase = $true)]
+    [Parameter(Position=0)]
     [string]$state 
 )
 
@@ -17,8 +40,8 @@ $canPrompt = $Host.UI -and $Host.UI.RawUI -and $Host.Name -match "ConsoleHost"
 
 if (-not $isAdmin) {
     if (-not $canPrompt) {
-        Write-Host "ERROR: Script must be run as Administrator, but no prompt is available for elevation."
-        return 3
+        Write-Error "Script must be run as Administrator, but no prompt is available for elevation."
+        exit 3
     }
     $argList = ($MyInvocation.UnboundArguments | ForEach-Object { '"{0}"' -f $_ }) -join ' '
     $proc = Start-Process powershell `
@@ -26,7 +49,7 @@ if (-not $isAdmin) {
         -Verb RunAs `
         -PassThru
     $proc.WaitForExit()
-    return $proc.ExitCode
+    exit $proc.ExitCode
 }
 
 
@@ -39,12 +62,12 @@ if ($state) {
     }
     $bcdResult = bcdedit /set hypervisorlaunchtype $state
     if ($LASTEXITCODE -ne 0) {
-        Write-Host "ERROR: bcdedit failed."
-        return 10
+        Write-Error "bcdedit failed."
+        exit 10
     }
 } elseif (-not $canPrompt) {
-    Write-Host "ERROR: state must be provided when no interactive prompt is available."
-    return 2
+    Write-Error "State must be provided when no interactive prompt is available."
+    exit 2
 }
 
 
@@ -69,8 +92,8 @@ foreach ($line in $bcd) {
 }
 
 if (-not $oldState) {
-    Write-Host "No hypervisorlaunchtype found in {current} section."
-    return 1
+    Write-Error "No hypervisorlaunchtype found in {current} section."
+    exit 1
 }
 
 $oldState = $oldState.Trim().ToLower()
@@ -91,13 +114,13 @@ if ($canPrompt) {
     $decision = 0
 }
 if ($decision -ne 0) {
-    return 0
+    exit 0
 }
    
 $bcdResult = bcdedit /set hypervisorlaunchtype $newState 2>&1
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "ERROR: bcdedit failed with $bcdResult."
-    return 10
+    Write-Error "bcdedit failed with $bcdResult."
+    exit 10
 } else {
     Write-Host "Set hypervisorlaunchtype to $newState."
 }
@@ -106,4 +129,6 @@ if ($LASTEXITCODE -ne 0) {
 if ($canPrompt) {
     Read-Host "Press Enter to exit"
 }
-return 0
+
+exit 0
+
