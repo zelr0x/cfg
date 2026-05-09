@@ -77,8 +77,9 @@ set statusline=%f\ %y\ %{b:git_branch}\ %r\ %m%=%l,%c\ %V\ (%P)\ \|\ %{(&fileenc
 set expandtab
 set tabstop=4
 set shiftwidth=4
-""" Disable expandtab for Go files
+""" Disable expandtab for Go and Make files
 autocmd FileType go setlocal noexpandtab
+autocmd FileType make setlocal noexpandtab
 
 """ Fix backspace
 set backspace=indent,eol,start
