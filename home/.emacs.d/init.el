@@ -25,6 +25,9 @@
 (tool-bar-mode -1)
 (tooltip-mode -1)
 
+;; Scrollbar padding.
+(fringe-mode 0)
+
 ;; Backwards compatibility layer for versions <= 26.
 ;; Note: global-linum-mode was removed in v29.
 (if (fboundp 'global-display-line-numbers-mode)
