@@ -1,6 +1,18 @@
 ;; Mostly copied from Jonathan Blow's compiler development streams
 ;; and from Casey Muratori's Handmade Hero streams.
 
+(require 'package)
+(add-to-list 'package-archives
+             '("tromey" . "https://tromey.com/elpa/") t)
+(add-to-list 'package-archives
+             '("melpa" . "https://melpa.org/packages/") t)
+(add-to-list 'package-archives
+             '("melpa-stable" . "https://stable.melpa.org/packages/") t)
+
+;; External packages.
+;(use-package cider :ensure t)
+
+;; Internal packages, no (require 'package) needed at all.
 (require 'compile)
 ;; Add syntax highlighting for batch files and stuff.
 (require 'generic-x)
@@ -20,6 +32,10 @@
 (if (boundp 'buffer-file-coding-system)
     (setq-default buffer-file-coding-system 'utf-8-unix)
   (setq default-buffer-file-coding-system 'utf-8-unix))
+
+(defun reload-init-file ()
+  (interactive)
+  (load-file user-init-file))
 
 (menu-bar-mode -1)
 (tool-bar-mode -1)
@@ -52,6 +68,9 @@
 (setq-default indent-tabs-mode nil)
 (setq-default c-basic-offset 4)
 (setq-default tab-width 4)
+;(setq-default indent-line-function 'insert-tab)
+;(setq-default electric-indent-inhibit t)
+;(setq electric-indent-mode -1)
 
 ;; Always terminate last line in file.
 (setq require-final-newline t)
@@ -68,11 +87,14 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(default ((t (:foreground "#d3b58d" :background "#041818"))))
+ ;'(default ((t (:foreground "#d3b58d" :background "#041818"))))
+ ;'(default ((t (:foreground "#d3b58d" :background "#062626"))))
+ '(default ((t (:foreground "#babaa3" :background "#062626"))))
  '(custom-group-tag-face ((t (:underline t :foreground "lightblue"))) t)
  '(custom-variable-tag-face ((t (:underline t :foreground "lightblue"))) t)
  '(font-lock-builtin-face ((t nil)))
- '(font-lock-comment-face ((t (:foreground "#48b751"))))
+ '(font-lock-comment-face ((t (:foreground "#43bb31"))))
+ ;'(font-lock-comment-face ((t (:foreground "#48b751"))))
  ;'(font-lock-comment-face ((t (:foreground "#44b340"))))
  ;'(font-lock-comment-face ((t (:foreground "#3fdf1f"))))
  '(font-lock-function-name-face ((((class color) (background dark)) (:foreground "white"))))
@@ -240,14 +262,118 @@ and is included for completeness."
   nil
   "A mode for .variables files")
 
+
+;; ================================
+;; Rust support without dependencies
+(defvar rust-mode-syntax-table
+  (let ((st (make-syntax-table)))
+    (modify-syntax-entry ?/ ". 124" st) ;; // and /// start comments
+    (modify-syntax-entry ?* ". 23" st)  ;; /* ... */ block comments
+    (modify-syntax-entry ?\n ">" st)    ;; newline ends // comments
+    st))
+
 (define-derived-mode rust-mode prog-mode "Rust"
   "A minimal Rust mode for syntax highlighting."
+  :syntax-table rust-mode-syntax-table
+  
   (font-lock-add-keywords nil
-    '(("\\(#!?\\[.*?\\]\\)" . font-lock-preprocessor-face)
-      ("\\<\\(fn\\|let\\|mut\\|const\\|static\\|struct\\|impl\\|enum\\|trait\\|type\\|use\\|pub\\|mod\\|crate\\|match\\|if\\|else\\|for\\|while\\|loop\\|break\\|continue\\|return\\|yield\\|as\\|in\\|async\\|await\\|move\\|unsafe\\|dyn\\|default\\|where\\|ref\\|alignof\\|offsetof\\|sizeof\\|=>|->\\|::\\)\\>" . font-lock-keyword-face)
+    '(;;("\\(#!?\\[[^]\n\\]\\)" . font-lock-preprocessor-face)
+
+      ;; #[foo] or #![foo]
+      ("\\(#!?\\[[^]()\n]+\\]\\)" . font-lock-preprocessor-face)
+      ;; #[foo(
+      ("\\(#!?\\[[^]()\n]+(\\)" . font-lock-preprocessor-face)
+      ;; )]
+      ("\\()\\]\\)" 1 font-lock-preprocessor-face)
+      
+      ("\\_<\\(fn\\|let\\|mut\\|const\\|static\\|struct\\|impl\\|enum\\|trait\\|type\\|use\\|pub\\|mod\\|crate\\|match\\|if\\|else\\|for\\|while\\|loop\\|break\\|continue\\|return\\|yield\\|as\\|in\\|async\\|await\\|move\\|unsafe\\|dyn\\|default\\|where\\|ref\\|alignof\\|offsetof\\|extern\\|macro_rules!\\|sizeof\\)\\_>" . font-lock-keyword-face)
+      ("\\(?:=>\\|->\\|::\\)" . font-lock-keyword-face)
       ("\\<\\(None\\|Some\\|Ok\\|Err\\|Result\\|Option\\|self\\|super\\|Self\\|true\\|false\\)\\>" . font-lock-constant-face)
-      ("\\<\\(u8\\|u16\\|u32\\|u64\\|u128\\|i8\\|i16\\|i32\\|i64\\|i128\\|f32\\|f64\\|bool\\|char\\|str\\)\\>" . font-lock-type-face))))
+      ("\\<\\(usize\\|isize\\|u8\\|u16\\|u32\\|u64\\|u128\\|i8\\|i16\\|i32\\|i64\\|i128\\|f32\\|f64\\|bool\\|char\\|str\\)\\>" . font-lock-type-face)
+      ("\\<\\(?:let\\|const\\)\\s-+\\(?:mut\\s-+\\)?\\([a-zA-Z_][a-zA-Z0-9_]*\\)"
+       1 font-lock-variable-name-face)))
+)
 (add-to-list 'auto-mode-alist '("\\.rs\\'" . rust-mode))
+
+(defun rust-indent-line ()
+  (interactive)
+  (let ((indent 0)
+        (pos (- (point-max) (point))))
+    (save-excursion
+      (beginning-of-line)
+
+      ;; CASE 1: closing brace line
+      (if (looking-at "^[ \t]*}")
+          (progn
+            ;; base indent from previous block level
+            (forward-line -1)
+            (while (and (looking-at "^[ \t]*$")
+                        (not (bobp)))
+              (forward-line -1))
+            (setq indent (current-indentation)))
+
+        ;; CASE 2: normal line
+        (progn
+          (forward-line -1)
+          (while (and (looking-at "^[ \t]*$")
+                      (not (bobp)))
+            (forward-line -1))
+
+          (setq indent (current-indentation))
+
+          ;; increase after "{"
+          (end-of-line)
+          (when (looking-back "{[ \t]*" (line-beginning-position))
+            (setq indent (+ indent tab-width))))))
+
+    (indent-line-to indent)
+
+    ;; keep point stable
+    (when (> (- (point-max) pos) (point))
+      (goto-char (- (point-max) pos)))))
+
+; Rust mode handling
+(defun big-fun-rust-hook ()
+  ; 4-space tabs
+  (setq-local tab-width 4
+        indent-tabs-mode nil)
+
+  ; Handle super-tabbify (TAB completes, shift-TAB actually tabs)
+  (setq dabbrev-case-replace t)
+  (setq dabbrev-case-fold-search t)
+  (setq dabbrev-upcase-means-case-search t)
+
+  (setq-local indent-line-function #'rust-indent-line)
+
+  ; Abbrevation expansion
+  (abbrev-mode 1)
+
+  (define-key rust-mode-map "\C-m" 'newline-and-indent)
+  (define-key rust-mode-map "\es" 'my/save-buffer)
+  (define-key rust-mode-map (kbd "C-x C-s") 'my/save-buffer)
+
+  (define-key rust-mode-map "\t" 'dabbrev-expand)
+  (define-key rust-mode-map [S-tab] 'indent-for-tab-command)
+  (define-key rust-mode-map "\C-y" 'indent-for-tab-command)
+  ;(define-key rust-mode-map [C-tab] 'indent-region)
+  ;(define-key rust-mode-map " " 'indent-region)
+
+  (define-key rust-mode-map "\ej" 'imenu)
+
+  (define-key rust-mode-map "\e." 'c-fill-paragraph)
+
+  (define-key rust-mode-map "\e/" 'c-mark-function)
+
+  (define-key rust-mode-map "\e " 'set-mark-command)
+  (define-key rust-mode-map "\eq" 'append-as-kill)
+  (define-key rust-mode-map "\ea" 'yank)
+  (define-key rust-mode-map "\ez" 'kill-region)
+;; omit everything else
+)
+
+(add-hook 'rust-mode-hook 'big-fun-rust-hook)
+
+;; ================================
 
 
 ;(global-set-key "\C-t" 'toggle-source)
@@ -398,8 +524,8 @@ and is included for completeness."
   (c-add-style "BigFun" casey-big-fun-c-style t)
 
   ; 4-space tabs
-  ;; (setq tab-width 4
-  ;;       indent-tabs-mode nil)
+  (setq tab-width 4
+        indent-tabs-mode nil)
 
   ; Additional style stuff
   (c-set-offset 'member-init-intro '++)
@@ -469,10 +595,10 @@ and is included for completeness."
   (define-key c++-mode-map "\ez" 'kill-region)
 ;; omit everything else
 )
-;; Casey's style end.
-;; ================================
 (add-hook 'c-mode-common-hook 'casey-big-fun-c-hook)
 (add-hook 'c++-mode-common-hook 'casey-big-fun-c-hook)
+;; ================================
+
 
 (delete-selection-mode 1)
 
