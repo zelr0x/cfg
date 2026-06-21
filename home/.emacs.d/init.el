@@ -24,7 +24,13 @@
 (menu-bar-mode -1)
 (tool-bar-mode -1)
 (tooltip-mode -1)
-(global-linum-mode t)
+
+;; Backwards compatibility layer for versions <= 26.
+;; Note: global-linum-mode was removed in v29.
+(if (fboundp 'global-display-line-numbers-mode)
+    (global-display-line-numbers-mode t)
+  (global-linum-mode t))
+
 (setq column-number-mode t)
 
 (setq inhibit-startup-screen t)
